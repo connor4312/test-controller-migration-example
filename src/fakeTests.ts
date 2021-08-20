@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { TestSuiteInfo, TestInfo, TestRunStartedEvent, TestRunFinishedEvent, TestSuiteEvent, TestEvent } from 'vscode-test-adapter-api';
 
 export function loadFakeTests(controller: vscode.TestController) {
 	const nestedSuite = controller.createTestItem('neested', 'Nested Suite', undefined);
@@ -14,49 +13,50 @@ export function loadFakeTests(controller: vscode.TestController) {
 }
 
 export async function runFakeTests(
-	tests: string[],
-	testStatesEmitter: vscode.EventEmitter<TestRunStartedEvent | TestRunFinishedEvent | TestSuiteEvent | TestEvent>
+	controller: vscode.TestController,
+	request: vscode.TestRunRequest
 ): Promise<void> {
-	for (const suiteOrTestId of tests) {
-		const node = findNode(fakeTestSuite, suiteOrTestId);
-		if (node) {
-			await runNode(node, testStatesEmitter);
-		}
-	}
-}
+	const run = controller.createTestRun(request);
 
-function findNode(searchNode: TestSuiteInfo | TestInfo, id: string): TestSuiteInfo | TestInfo | undefined {
-	if (searchNode.id === id) {
-		return searchNode;
-	} else if (searchNode.type === 'suite') {
-		for (const child of searchNode.children) {
-			const found = findNode(child, id);
-			if (found) return found;
-		}
+	if (request.include) {
+		await Promise.all(request.include.map(t => runNode(t, request, run)));
+	} else {
+		await Promise.all(mapTestItems(controller.items, t => runNode(t, request, run)));
 	}
-	return undefined;
+
+	run.end();
 }
 
 async function runNode(
-	node: TestSuiteInfo | TestInfo,
-	testStatesEmitter: vscode.EventEmitter<TestRunStartedEvent | TestRunFinishedEvent | TestSuiteEvent | TestEvent>
+	node: vscode.TestItem,
+	request: vscode.TestRunRequest,
+	run: vscode.TestRun,
 ): Promise<void> {
+	// Users can hide or filter out tests from their run. If the request says
+	// they've done that for this node, then don't run it.
+	if (request.exclude?.includes(node)) {
+		return;
+	}
 
-	if (node.type === 'suite') {
+	if (node.children.size > 0) {
 
-		testStatesEmitter.fire(<TestSuiteEvent>{ type: 'suite', suite: node.id, state: 'running' });
+		// recurse and run all children if this is a "suite"
+		await Promise.all(mapTestItems(node.children, t => runNode(t, request, run)));
 
-		for (const child of node.children) {
-			await runNode(child, testStatesEmitter);
-		}
+	} else {
 
-		testStatesEmitter.fire(<TestSuiteEvent>{ type: 'suite', suite: node.id, state: 'completed' });
+		run.started(node);
 
-	} else { // node.type === 'test'
+		await new Promise<void>(done => setTimeout(done, Math.random() * 5000));
 
-		testStatesEmitter.fire(<TestEvent>{ type: 'test', test: node.id, state: 'running' });
-
-		testStatesEmitter.fire(<TestEvent>{ type: 'test', test: node.id, state: 'passed' });
+		run.passed(node);
 
 	}
+}
+
+// Small helper that works like "array.map" for children of a test collection
+const mapTestItems = <T>(items: vscode.TestItemCollection, mapper: (t: vscode.TestItem) => T): T[] => {
+	const result: T[] = [];
+	items.forEach(t => result.push(mapper(t)));
+	return result;
 }

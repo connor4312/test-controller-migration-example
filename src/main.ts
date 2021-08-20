@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { loadFakeTests } from './fakeTests';
+import { loadFakeTests, runFakeTests } from './fakeTests';
 
 export async function activate(context: vscode.ExtensionContext) {
 	const controller = vscode.tests.createTestController('example-test-adapter', 'Example Test Controller');
@@ -11,5 +11,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	controller.resolveHandler = test => {
 		controller.items.replace(loadFakeTests(controller));
 	};
+
+	// We'll create the "run" type profile here, and give it the function to call.
+	// You can also create debug and coverage profile types. The last `true` argument
+	// indicates that this should by the default "run" profile, in case there were
+	// multiple run profiles.
+	controller.createRunProfile('Run', vscode.TestRunProfileKind.Run, request => runFakeTests(controller, request), true);
 
 }
