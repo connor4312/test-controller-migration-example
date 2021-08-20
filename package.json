@@ -32,9 +32,7 @@
     "publish": "vsce publish"
   },
   "dependencies": {
-    "tslib": "^2.3.1",
-    "vscode-test-adapter-api": "^1.9.0",
-    "vscode-test-adapter-util": "^0.7.1"
+    "tslib": "^2.3.1"
   },
   "devDependencies": {
     "@types/node": "^16.7.0",
@@ -45,9 +43,6 @@
   "engines": {
     "vscode": "^1.23.0"
   },
-  "extensionDependencies": [
-    "hbenl.vscode-test-explorer"
-  ],
   "activationEvents": [
     "*"
   ],
