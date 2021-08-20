@@ -1,43 +1,16 @@
 import * as vscode from 'vscode';
 import { TestSuiteInfo, TestInfo, TestRunStartedEvent, TestRunFinishedEvent, TestSuiteEvent, TestEvent } from 'vscode-test-adapter-api';
 
-const fakeTestSuite: TestSuiteInfo = {
-	type: 'suite',
-	id: 'root',
-	label: 'Fake', // the label of the root node should be the name of the testing framework
-	children: [
-		{
-			type: 'suite',
-			id: 'nested',
-			label: 'Nested suite',
-			children: [
-				{
-					type: 'test',
-					id: 'test1',
-					label: 'Test #1'
-				},
-				{
-					type: 'test',
-					id: 'test2',
-					label: 'Test #2'
-				}
-			]
-		},
-		{
-			type: 'test',
-			id: 'test3',
-			label: 'Test #3'
-		},
-		{
-			type: 'test',
-			id: 'test4',
-			label: 'Test #4'
-		}
-	]
-};
+export function loadFakeTests(controller: vscode.TestController) {
+	const nestedSuite = controller.createTestItem('neested', 'Nested Suite', undefined);
+	nestedSuite.children.replace([
+		controller.createTestItem('test1', 'Test #1'),
+		controller.createTestItem('test2', 'Test #2'),
+	]);
+	const test3 = controller.createTestItem('test3', 'Test #3')
+	const test4 = controller.createTestItem('test4', 'Test #4')
 
-export function loadFakeTests(): Promise<TestSuiteInfo> {
-	return Promise.resolve<TestSuiteInfo>(fakeTestSuite);
+	return [nestedSuite, test3, test4];
 }
 
 export async function runFakeTests(
